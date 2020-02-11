@@ -22,7 +22,7 @@
 LinearRegressionWorker <- R6Class(
     "CoxWorker",
     private = list(
-        defn = NA
+        defn = NA # should I include a loss function in the defintiion to do local optimization on the worker side?
       , stateful = TRUE
       , rs = NA
       , p = NA
