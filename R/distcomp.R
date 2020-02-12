@@ -245,14 +245,14 @@ makeWorker <- function (defn, data) {
 #' @return a master object of the appropriate class based on the definition
 #'
 #' @export
-makeMaster <- function(defn) {
+makeMaster <- function(defn, debug=FALSE) {
   compType <- defn$compType
   available <- availableComputations()
   k <- match(compType, names(available))
   if (is.na(k)) {
     stop(sprintf("No such computation: %s", compType))
   } else {
-    available[[k]]$makeMaster(defn)
+    available[[k]]$makeMaster(defn, debug)
   }
 }
 

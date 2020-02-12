@@ -23,7 +23,7 @@ nSites <- length(siteData)
 #                                  url = opencpu$url()))
 sites <- lapply(seq_along(siteData),
                 function(x) list(name = paste0("site", x),
-                                 worker = makeWorker(defn = lmDef, data = siteData[[x]])
+                                 worker = makeWorker(defn = coxDef, data = siteData[[x]])
                 ))
 
 ok <- Map(uploadNewComputation, sites,

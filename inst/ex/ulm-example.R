@@ -7,9 +7,11 @@ cardata <- mtcars
 cardata$site <- c(rep(0, 16), rep(1, 16))
 
 ## First we apply the base R linear model to get the true model
-# EX: regress disp ~ wt
+# EX: regress disp ~ wt -> rename to x and y
+colnames(cardata)[which(colnames(cardata)=='disp')] <- 'y'
+colnames(cardata)[which(colnames(cardata)=='wt')] <- 'x'
 
-lmOrig <- lm(disp ~ wt, data=cardata)
+lmOrig <- lm(y ~ x, data=cardata)
 summary(lmOrig)
 
 ## We define the computation
@@ -38,7 +40,7 @@ ok <- Map(uploadNewComputation, sites,
 
 #stopifnot(all(as.logical(ok)))
 
-master <- makeMaster(lmDef) #LinearRegressionMaster$new(defnId = lmDef)
+master <- makeMaster(lmDef, debug=TRUE) #LinearRegressionMaster$new(defnId = lmDef)
 
 # for (site in sites) {
 #   master$addSite(name = site$name, url = site$url)

@@ -22,10 +22,9 @@
 LinearRegressionWorker <- R6Class(
     "LinearRegressionWorker",
     private = list(
-        defn = NA # should I include a loss function in the defintiion to do local optimization on the worker side?
-      , stateful = TRUE
-      , rs = NA
-      , p = NA
+        defn = NA 
+      , stateful = FALSE
+      # , p = NA
       , data = NULL
       , result = list()
     ),
@@ -35,13 +34,14 @@ LinearRegressionWorker <- R6Class(
             private$stateful <- stateful
             private$data <- data
             stopifnot(self$kosher())
-        } , getP = function(...) {
-            private$p
+        # } , getP = function(...) {
+        #     private$p
         },  getStateful = function() {
             private$stateful
         }, sumRSS = function(beta, ...) {
           # sum of the squared residuals given beta 0 (intercept) and beta 1 (slope)
-            sum((beta[1] + beta[2] * data$x - data$y)^2) 
+          print(private$data)
+          sum((beta[1] + beta[2] * private$data$x - private$data$y)^2) 
         }, kosher = function() {
             ## add sanity checks
             TRUE
@@ -85,7 +85,7 @@ LinearRegressionMaster <- R6Class(
         defn = NA
         , dry_run = FALSE,
         sites = list()
-        , p = NA
+        # , p = NA
       , mapFn = function(site, beta) {
           payload <- list(objectId = site$instanceId,
                           method = "sumRSS",
@@ -101,7 +101,7 @@ LinearRegressionMaster <- R6Class(
        , debug = FALSE
     ),
     public = list(
-        initialize = function(defn, debug = TRUE) {
+        initialize = function(defn, debug = FALSE) {
             'Initialize the object with a defn and flag'
             private$defn <- defn
             private$debug <- debug
@@ -160,7 +160,11 @@ LinearRegressionMaster <- R6Class(
             if (dry_run) {
                 ## Workers have already been created and passed
                 sites <- private$sites
-                pVals <- sapply(sites, function(x) x$worker$getP())
+                # pVals <- sapply(sites, function(x) x$worker$getP())
+                # if(debug) {
+                #   print("Checking pVals:")
+                #   print(pVals)
+                # }
             } else {
                 ## Create an instance Id
                 instanceId <- generateId(object=list(Sys.time(), self))
@@ -199,32 +203,37 @@ LinearRegressionMaster <- R6Class(
                 if (debug) {
                     print("run(): checking p")
                 }
-                pVals <- sapply(
-                    sites,
-                    function(x) {
-                        payload <- list(objectId = x$instanceId, method = "getP")
-                        q <- POST(.makeOpencpuURL(urlPrefix=x$url, fn="executeMethod"),
-                                  body = toJSON(payload),
-                                  add_headers("Content-Type" = "application/json"),
-                                  config=getConfig()$sslConfig
-                                  )
-                        .deSerialize(q)
-                    })
+                # pVals <- sapply(
+                #     sites,
+                #     function(x) {
+                #         payload <- list(objectId = x$instanceId, method = "getP")
+                #         if(debug){
+                #           print("Printing pVal payload: ")
+                #           print(payload)
+                #         }
+                #         q <- POST(.makeOpencpuURL(urlPrefix=x$url, fn="executeMethod"),
+                #                   body = toJSON(payload),
+                #                   add_headers("Content-Type" = "application/json"),
+                #                   config=getConfig()$sslConfig
+                #                   )
+                #         .deSerialize(q)
+                #     })
             }
-            if (debug) {
-                print(pVals)
-            }
-            if (any(pVals != pVals[1])) {
-                stop("run(): Heterogeneous sites! Stopping!")
-            }
-            p <- pVals[1]
-            if (debug) {
-                print(paste("p is ", p))
-            }
+            # if (debug) {
+            #     print("Printing pVals:")
+            #     print(pVals)
+            # }
+            # if (any(pVals != pVals[1])) {
+            #     stop("run(): Heterogeneous sites! Stopping!")
+            # }
+            # p <- pVals[1]
+            # if (debug) {
+            #     print(paste("p is ", p))
+            # }
 
             ## TODO: solve for the RSS from each site
             control <- list(iter.max=1000, eps=0)
-            prevBeta <- beta <- rep(0, p) # define the first set of betas to use
+            prevBeta <- beta <- c(0, 0) # define the first set of betas to use
             m <- prevRSS <- self$sumRSS(beta) # initial loss using first betas
             # iter <- 0
             # returnCode <- 0
@@ -290,11 +299,15 @@ LinearRegressionMaster <- R6Class(
                 result <- private$result
             }
 
+            hessianInv <- solve(result$hessian)
+            se <- sqrt(diag(hessianInv))
+            eCoef <- exp(result$beta)
+            
             d <- as.data.frame(t(sapply(seq.int(length(result$beta)),
                                         function(i) {
                                             coef <- result$beta[i]
                                             eCoef <- exp(coef)
-                                            se <- sqrt(result$var[i, i])
+                                            se <- sqrt(diag(result$hessian))
                                             z <- coef / se
                                             pValue <- 2*pnorm(z, lower.tail=(z <= 0))
                                             c("coef"=coef, "exp(coef)"=eCoef, "se(coef)"=se, z=z, p=pValue)
