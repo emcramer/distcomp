@@ -101,7 +101,7 @@ LinearRegressionMaster <- R6Class(
        , debug = FALSE
     ),
     public = list(
-        initialize = function(defn, debug = FALSE) {
+        initialize = function(defn, debug = TRUE) {
             'Initialize the object with a defn and flag'
             private$defn <- defn
             private$debug <- debug
@@ -149,7 +149,6 @@ LinearRegressionMaster <- R6Class(
                                              dataFileName = if (localhost) paste0(name, ".rds") else NULL)
             }
             ## critical section end
-            ## TODO: figure out how the master is running the workers asynchronously.
         }, run = function(control=NULL) {
             'Run estimation'
             dry_run <- private$dry_run

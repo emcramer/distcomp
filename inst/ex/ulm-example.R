@@ -23,20 +23,28 @@ library(opencpu)
 ## We split the data by site
 siteData <- with(cardata, split(x=cardata, f=site))
 nSites <- length(siteData)
-sites <- lapply(seq.int(nSites),
+# sites <- lapply(seq.int(nSites),
+#                 function(x) list(name = paste0("site", x),
+#                                  url = opencpu$url()))
+
+sites <- lapply(seq_along(siteData),
                 function(x) list(name = paste0("site", x),
-                                 url = opencpu$url()))
+                                 worker = makeWorker(defn = lmDef, data = siteData[[x]])
+                ))
 
 ok <- Map(uploadNewComputation, sites,
           lapply(seq.int(nSites), function(i) lmDef),
           siteData)
 
-stopifnot(all(as.logical(ok)))
+#stopifnot(all(as.logical(ok)))
 
-master <- LinearRegressionMaster$new(defnId = lmDef)
+master <- makeMaster(lmDef) #LinearRegressionMaster$new(defnId = lmDef)
 
+# for (site in sites) {
+#   master$addSite(name = site$name, url = site$url)
+# }
 for (site in sites) {
-  master$addSite(name = site$name, url = site$url)
+  master$addSite(name = site$name, worker = site$worker)
 }
 
 result <- master$run()

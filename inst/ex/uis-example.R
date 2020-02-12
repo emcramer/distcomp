@@ -9,7 +9,7 @@ summary(coxOrig)
 
 ## We define the computation
 
-coxDef <- data.frame(compType = names(availableComputations())[1],
+coxDef <- data.frame(compType = names(availableComputations())[2],
                      formula = "Surv(time, censor) ~ age + becktota + ndrugfp1 + ndrugfp2 + ivhx3 + race + treat",
                      id = "UIS",
                      stringsAsFactors=FALSE)
@@ -18,20 +18,27 @@ library(opencpu)
 ## We split the data by site
 siteData <- with(uis, split(x=uis, f=site))
 nSites <- length(siteData)
-sites <- lapply(seq.int(nSites),
+# sites <- lapply(seq.int(nSites),
+#                 function(x) list(name = paste0("site", x),
+#                                  url = opencpu$url()))
+sites <- lapply(seq_along(siteData),
                 function(x) list(name = paste0("site", x),
-                                 url = opencpu$url()))
+                                 worker = makeWorker(defn = lmDef, data = siteData[[x]])
+                ))
 
 ok <- Map(uploadNewComputation, sites,
           lapply(seq.int(nSites), function(i) coxDef),
           siteData)
 
-stopifnot(all(as.logical(ok)))
+#stopifnot(all(as.logical(ok)))
 
-master <- CoxMaster$new(defnId = coxDef$id, formula=coxDef$formula)
+master <- makeMaster(coxDef) #CoxMaster$new(defnId = coxDef$id, formula=coxDef$formula)
 
+# for (site in sites) {
+#   master$addSite(name = site$name, url = site$url)
+# }
 for (site in sites) {
-  master$addSite(name = site$name, url = site$url)
+  master$addSite(name = site$name, worker = site$worker)
 }
 
 result <- master$run()
