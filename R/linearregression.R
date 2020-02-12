@@ -20,26 +20,28 @@
 #' @export
 #' @format An [R6::R6Class()] generator object
 LinearRegressionWorker <- R6Class(
-    "CoxWorker",
+    "LinearRegressionWorker",
     private = list(
         defn = NA # should I include a loss function in the defintiion to do local optimization on the worker side?
       , stateful = TRUE
       , rs = NA
       , p = NA
+      , data = NULL
       , result = list()
     ),
     public = list(
         initialize = function(defn, data, stateful=TRUE) {
             private$defn <- defn
             private$stateful <- stateful
-            private$rs <- sum((defn$beta[1] + defn$beta[2] * data$x - data$y)^2) # sum of the squared residuals given beta 0 and beta 1
+            private$data <- data
             stopifnot(self$kosher())
         } , getP = function(...) {
             private$p
         },  getStateful = function() {
             private$stateful
         }, sumRSS = function(beta, ...) {
-            list(rss2 = private$rss)
+          # sum of the squared residuals given beta 0 (intercept) and beta 1 (slope)
+            sum((beta[1] + beta[2] * data$x - data$y)^2) 
         }, kosher = function() {
             ## add sanity checks
             TRUE
@@ -86,7 +88,7 @@ LinearRegressionMaster <- R6Class(
         , p = NA
       , mapFn = function(site, beta) {
           payload <- list(objectId = site$instanceId,
-                          method = "logLik",
+                          method = "sumRSS",
                           beta = beta)
           q <- POST(.makeOpencpuURL(urlPrefix=site$url, fn="executeMethod"),
                     body = toJSON(payload),
@@ -122,16 +124,12 @@ LinearRegressionMaster <- R6Class(
                 mapFn <- private$mapFn
             }
             results <- Map(mapFn, sites, rep(list(beta), n))
-            value <- Reduce(f = sum, lapply(results, function(x, y) x[[y]], y = "rss2"))
-            #gradient <- Reduce(f = '+', lapply(results, function(x, y) x[[y]], y = "gradient"))
-            #hessian <- Reduce(f = '+', lapply(results, function(x, y) x[[y]], y = "hessian"))
-            #attr(value, "gradient") <- gradient
-            #attr(value, "hessian") <- hessian
+            value <- Reduce(f = sum, results)
             if (debug) {
                 print("value")
                 print(value)
             }
-            value
+            value # returns the sum of the residual sum of squares for all sites
         }, addSite = function(name, url = NULL, worker = NULL) {
             'Add a site identified by url with a name'
             ## critical section start
@@ -152,7 +150,7 @@ LinearRegressionMaster <- R6Class(
             }
             ## critical section end
             ## TODO: figure out how the master is running the workers asynchronously.
-        }, run = function() {
+        }, run = function(control=NULL) {
             'Run estimation'
             dry_run <- private$dry_run
             debug <- private$debug
@@ -226,33 +224,41 @@ LinearRegressionMaster <- R6Class(
             }
 
             ## TODO: solve for the RSS from each site
-            ##control <- coxph.control()
-            prevBeta <- beta <- rep(0, p)
-            m <- prevRSS <- self$sumRSS(beta)
-            iter <- 0
-            returnCode <- 0
-            repeat {
-                beta <- beta - solve(attr(m, "hessian")) %*% attr(m, "gradient")
-                iter <- iter + 1
-                m <- self$sumRSS(beta)
-                if (abs(m - prevloglik) < control$eps) {
-                    break
-                }
-                if (iter >= control$iter.max) {
-                    returnCode <- 1
-                    break
-                }
-                prevBeta <- beta
-                prevRSS <- m
-                if (debug) {
-                    print(beta)
-                }
-            }
-            private$result <- result <- list(beta = beta,
-                                             var = -solve(attr(m, "hessian")),
-                                             gradient = attr(m, "gradient"),
-                                             iter = iter,
-                                             returnCode = returnCode)
+            control <- list(iter.max=1000, eps=0)
+            prevBeta <- beta <- rep(0, p) # define the first set of betas to use
+            m <- prevRSS <- self$sumRSS(beta) # initial loss using first betas
+            # iter <- 0
+            # returnCode <- 0
+            ### Iterating here to find final betas
+            # repeat {
+            #   # 
+            #     beta <- beta - solve(attr(m, "hessian")) %*% attr(m, "gradient")
+            #     iter <- iter + 1
+            #     m <- self$sumRSS(beta) # get the RSS from each site
+            #     if (m - prevRSS <= control$eps) {
+            #         break
+            #     }
+            #   ###
+            #     if (iter >= control$iter.max) {
+            #         returnCode <- 1
+            #         break
+            #     }
+            #     prevBeta <- beta
+            #     prevRSS <- m
+            #     if (debug) {
+            #         print(beta)
+            #     }
+            # }
+            
+            fit <- optim(prevBeta
+                         , fn = self$sumRSS
+                         , hessian = TRUE)
+            
+            # saving the result
+            private$result <- result <- list(beta = fit$par
+                                             , iter = fit$counts
+                                             , hessian = fit$hessian
+                                             , returnCode = fit$convergence)
 
             if (!dry_run) {
                 if (debug) {

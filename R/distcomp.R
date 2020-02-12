@@ -306,8 +306,8 @@ availableComputations <- function() {
           },
           makeMaster = function(defn, debug = FALSE) QueryCountMaster$new(defn = defn, debug = debug),
           makeWorker = function(defn, data) QueryCountWorker$new(defn = defn, data = data)
-      ),
-      StratifiedCoxModel = list(
+      )
+      , StratifiedCoxModel = list(
           desc = "Stratified Cox Model",
           definitionApp = "defineNewCoxModel",
           setupWorkerApp = "setupCoxWorker",
@@ -322,8 +322,8 @@ availableComputations <- function() {
           },
           makeMaster = function(defn, debug = FALSE) CoxMaster$new(defn = defn, debug = debug),
           makeWorker = function(defn, data) CoxWorker$new(defn = defn, data = data)
-      ),
-      RankKSVD = list(
+      )
+      , RankKSVD = list(
           desc = "Rank K SVD",
           definitionApp = "defineNewSVDModel",
           setupWorkerApp = "setupSVDWorker",
@@ -339,6 +339,22 @@ availableComputations <- function() {
           },
           makeMaster = function(defn, debug = FALSE) SVDMaster$new(defn = defn, debug = debug),
           makeWorker = function(defn, data) SVDWorker$new(defn = defn, data = data)
+      )
+      , LinearRegressionModel = list(
+        desc = "Univariate Linear Regression Model",
+        definitionApp = "defineNewLinearRegressionModel",
+        setupWorkerApp = "setupLinearRegressionWorker",
+        setupMasterApp = "setupLinearRegressionMaster",
+        makeDefinition = function() {
+          data.frame(id = getComputationInfo("id"),
+                     compType = getComputationInfo("compType"),
+                     projectName = getComputationInfo("projectName"),
+                     projectDesc = getComputationInfo("projectDesc"),
+                     formula = getComputationInfo("formula"),
+                     stringsAsFactors=FALSE)
+        },
+        makeMaster = function(defn, debug = FALSE) LinearRegressionMaster$new(defn = defn, debug = debug),
+        makeWorker = function(defn, data) LinearRegressionWorker$new(defn = defn, data = data)
       )
   )
 }
