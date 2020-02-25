@@ -12,18 +12,18 @@ summary(poisOrig)
 ## We define the computation
 
 poisDef <- data.frame(compType = names(availableComputations())[5],
-                     formula = "totalGoals ~ year + month",
-                     id = "POIS",
-                     stringsAsFactors=FALSE)
+                      formula = "totalGoals ~ year + month",
+                      id = "POIS",
+                      stringsAsFactors=FALSE)
 
 library(opencpu)
 ## We split the data by site
 siteData <- with(football, split(x=football, f=site))
 nSites <- length(siteData)
-sites <- lapply(seq_along(siteData),
-                function(x) list(name = paste0("site", x),
-                                 worker = makeWorker(defn = poisDef, data = siteData[[x]])
-                ))
+sites <- list(
+  list(name = "Site1", url = "http://127.0.0.1:5656/ocpu"),
+  list(name = "Site2", url = "http://127.0.0.1:5656/ocpu")
+)
 
 ok <- Map(uploadNewComputation, sites,
           lapply(seq.int(nSites), function(i) poisDef),
@@ -34,7 +34,7 @@ ok <- Map(uploadNewComputation, sites,
 master <- makeMaster(poisDef)
 
 for (site in sites) {
-  master$addSite(name = site$name, worker = site$worker)
+  master$addSite(name = site$name, url = site$url)
 }
 
 result <- master$run()
