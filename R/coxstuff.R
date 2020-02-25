@@ -36,6 +36,7 @@ CoxWorker <- R6Class(
         initialize = function(defn, data, stateful=TRUE) {
             private$defn <- defn
             private$stateful <- stateful
+            form <- as.formula(defn$formula)
             result <- dccoxph(formula = as.formula(defn$formula), data = data)
             private$fitter <- result$fitter
             private$p <- result$p

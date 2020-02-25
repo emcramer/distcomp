@@ -356,6 +356,22 @@ availableComputations <- function() {
         makeMaster = function(defn, debug = FALSE) LinearRegressionMaster$new(defn = defn, debug = debug),
         makeWorker = function(defn, data) LinearRegressionWorker$new(defn = defn, data = data)
       )
+      , PoissonRegressionModel = list(
+        desc = "Multivariate Poisson Regression Model",
+        definitionApp = "defineNewPoissonRegressionModel",
+        setupWorkerApp = "setupPoissonRegressionWorker",
+        setupMasterApp = "setupPoissonRegressionMaster",
+        makeDefinition = function() {
+          data.frame(id = getComputationInfo("id"),
+                     compType = getComputationInfo("compType"),
+                     projectName = getComputationInfo("projectName"),
+                     projectDesc = getComputationInfo("projectDesc"),
+                     formula = getComputationInfo("formula"),
+                     stringsAsFactors=FALSE)
+        },
+        makeMaster = function(defn, debug = FALSE) PoissonRegressionMaster$new(defn = defn, debug = debug),
+        makeWorker = function(defn, data) PoissonRegressionWorker$new(defn = defn, data = data)
+      )
   )
 }
 

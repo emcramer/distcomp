@@ -1,4 +1,4 @@
-# univariate linear model (ULM) example
+# univariate linear model (ULM) example with local data
 library(distcomp)
 
 # using the mtcars data set included with base R
@@ -20,14 +20,11 @@ lmDef <- data.frame(compType = names(availableComputations())[4],
                      id = "mtcar",
                      stringsAsFactors=FALSE)
 
-library(opencpu)
+# library(opencpu) # unnecessary for a local test
 
 ## We split the data by site
 siteData <- with(cardata, split(x=cardata, f=site))
 nSites <- length(siteData)
-# sites <- lapply(seq.int(nSites),
-#                 function(x) list(name = paste0("site", x),
-#                                  url = opencpu$url()))
 
 sites <- lapply(seq_along(siteData),
                 function(x) list(name = paste0("site", x),
@@ -40,19 +37,14 @@ ok <- Map(uploadNewComputation, sites,
 
 #stopifnot(all(as.logical(ok)))
 
-master <- makeMaster(lmDef, debug=TRUE) #LinearRegressionMaster$new(defnId = lmDef)
+master <- makeMaster(lmDef, debug=FALSE) 
 
-# for (site in sites) {
-#   master$addSite(name = site$name, url = site$url)
-# }
 for (site in sites) {
   master$addSite(name = site$name, worker = site$worker)
 }
 
 result <- master$run()
-
-master$summary()
-
+#master$summary()
 print(master$summary(), digits=5)
-
+print(coef(lmOrig), digits=5)
 sessionInfo()

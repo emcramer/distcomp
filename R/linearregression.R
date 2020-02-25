@@ -24,7 +24,7 @@ LinearRegressionWorker <- R6Class(
     private = list(
         defn = NA 
       , stateful = FALSE
-      # , p = NA
+      , p = NA
       , data = NULL
       , result = list()
     ),
@@ -33,14 +33,14 @@ LinearRegressionWorker <- R6Class(
             private$defn <- defn
             private$stateful <- stateful
             private$data <- data
+            private$p <- ncol(data)
             stopifnot(self$kosher())
-        # } , getP = function(...) {
-        #     private$p
+        } , getP = function(...) {
+            private$p
         },  getStateful = function() {
             private$stateful
         }, sumRSS = function(beta, ...) {
           # sum of the squared residuals given beta 0 (intercept) and beta 1 (slope)
-          print(private$data)
           sum((beta[1] + beta[2] * private$data$x - private$data$y)^2) 
         }, kosher = function() {
             ## add sanity checks
@@ -160,11 +160,11 @@ LinearRegressionMaster <- R6Class(
             if (dry_run) {
                 ## Workers have already been created and passed
                 sites <- private$sites
-                # pVals <- sapply(sites, function(x) x$worker$getP())
-                # if(debug) {
-                #   print("Checking pVals:")
-                #   print(pVals)
-                # }
+                pVals <- sapply(sites, function(x) x$worker$getP())
+                if(debug) {
+                  print("Checking pVals:")
+                  print(pVals)
+                }
             } else {
                 ## Create an instance Id
                 instanceId <- generateId(object=list(Sys.time(), self))
@@ -203,62 +203,38 @@ LinearRegressionMaster <- R6Class(
                 if (debug) {
                     print("run(): checking p")
                 }
-                # pVals <- sapply(
-                #     sites,
-                #     function(x) {
-                #         payload <- list(objectId = x$instanceId, method = "getP")
-                #         if(debug){
-                #           print("Printing pVal payload: ")
-                #           print(payload)
-                #         }
-                #         q <- POST(.makeOpencpuURL(urlPrefix=x$url, fn="executeMethod"),
-                #                   body = toJSON(payload),
-                #                   add_headers("Content-Type" = "application/json"),
-                #                   config=getConfig()$sslConfig
-                #                   )
-                #         .deSerialize(q)
-                #     })
+                pVals <- sapply(
+                    sites,
+                    function(x) {
+                        payload <- list(objectId = x$instanceId, method = "getP")
+                        if(debug){
+                          print("Printing pVal payload: ")
+                          print(payload)
+                        }
+                        q <- POST(.makeOpencpuURL(urlPrefix=x$url, fn="executeMethod"),
+                                  body = toJSON(payload),
+                                  add_headers("Content-Type" = "application/json"),
+                                  config=getConfig()$sslConfig
+                                  )
+                        .deSerialize(q)
+                    })
             }
-            # if (debug) {
-            #     print("Printing pVals:")
-            #     print(pVals)
-            # }
-            # if (any(pVals != pVals[1])) {
-            #     stop("run(): Heterogeneous sites! Stopping!")
-            # }
-            # p <- pVals[1]
-            # if (debug) {
-            #     print(paste("p is ", p))
-            # }
+            if (debug) {
+                print("Printing pVals:")
+                print(pVals)
+            }
+            if (any(pVals != pVals[1])) {
+                stop("run(): Heterogeneous sites! Stopping!")
+            }
+            p <- pVals[1]
+            if (debug) {
+                print(paste("p is ", p))
+            }
 
             ## TODO: solve for the RSS from each site
             control <- list(iter.max=1000, eps=0)
-            prevBeta <- beta <- c(0, 0) # define the first set of betas to use
-            m <- prevRSS <- self$sumRSS(beta) # initial loss using first betas
-            # iter <- 0
-            # returnCode <- 0
-            ### Iterating here to find final betas
-            # repeat {
-            #   # 
-            #     beta <- beta - solve(attr(m, "hessian")) %*% attr(m, "gradient")
-            #     iter <- iter + 1
-            #     m <- self$sumRSS(beta) # get the RSS from each site
-            #     if (m - prevRSS <= control$eps) {
-            #         break
-            #     }
-            #   ###
-            #     if (iter >= control$iter.max) {
-            #         returnCode <- 1
-            #         break
-            #     }
-            #     prevBeta <- beta
-            #     prevRSS <- m
-            #     if (debug) {
-            #         print(beta)
-            #     }
-            # }
-            
-            fit <- optim(prevBeta
+            ### Call to optim to find betas
+            fit <- optim(c(0,0) # define the first set of betas to use, default to 0,0
                          , fn = self$sumRSS
                          , hessian = TRUE)
             
