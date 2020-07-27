@@ -163,7 +163,6 @@ PoissonRegressionMaster <- R6Class(
       private$result
     }, run = function(control=NULL) {
       'Run estimation'
-      browser()
       dry_run <- private$dry_run
       debug <- private$debug
       defn <- private$defn
