@@ -303,7 +303,7 @@ LogisticRegressionMaster <- R6Class(
                                   function(i) {
                                     coef <- result$theta[i]
                                     eCoef <- exp(coef)
-                                    se <- sqrt(diag(result$hessian))
+                                    se <- sqrt(diag(result$hessian))[i]
                                     z <- coef / se
                                     pValue <- 2*pnorm(z, lower.tail=(z <= 0))
                                    c("coef"=coef, "exp(coef)"=eCoef, "se(coef)"=se, z=z, p=pValue)
