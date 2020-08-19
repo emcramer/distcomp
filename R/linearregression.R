@@ -278,7 +278,6 @@ LinearRegressionMaster <- R6Class(
             hessianInv <- solve(result$hessian)
             se <- sqrt(diag(hessianInv))
             eCoef <- exp(result$beta)
-            # browser()
             d <- as.data.frame(t(sapply(seq.int(length(result$beta)),
                                         function(i) {
                                             coef <- result$beta[i]
