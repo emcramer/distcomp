@@ -278,19 +278,16 @@ LinearRegressionMaster <- R6Class(
             hessianInv <- solve(result$hessian)
             se <- sqrt(diag(hessianInv))
             eCoef <- exp(result$beta)
+            # browser()
             d <- as.data.frame(t(sapply(seq.int(length(result$beta)),
                                         function(i) {
                                             coef <- result$beta[i]
                                             eCoef <- exp(coef)
-                                            se <- sqrt(diag(result$hessian))
+                                            se <- sqrt(diag(result$hessian))[i]
                                             z <- coef / se
                                             pValue <- 2*pnorm(z, lower.tail=(z <= 0))
                                             c("coef"=coef, "exp(coef)"=eCoef, "se(coef)"=se, z=z, p=pValue)
                                         })))
-            se_col <- unlist(d[1, grep("se", colnames(d))])
-            names(se_col) <- NULL
-            d <- d[, !grepl("se", colnames(d))]
-            d <- cbind(d, "se(coef)" = se_col)
             d
         }
     )
