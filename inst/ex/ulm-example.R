@@ -15,8 +15,8 @@ lmOrig <- lm(y ~ x, data=cardata)
 summary(lmOrig)
 
 ## We define the computation
-
-lmDef <- data.frame(compType = names(availableComputations())[4],
+compType <- names(availableComputations())[grepl("Linear", names(availableComputations()))]
+lmDef <- data.frame(compType = compType,
                      id = "mtcar",
                      stringsAsFactors=FALSE)
 
@@ -35,7 +35,7 @@ ok <- Map(uploadNewComputation, sites,
           lapply(seq.int(nSites), function(i) lmDef),
           siteData)
 
-#stopifnot(all(as.logical(ok)))
+# stopifnot(all(as.logical(ok)))
 
 master <- makeMaster(lmDef, debug=FALSE) 
 
@@ -44,7 +44,7 @@ for (site in sites) {
 }
 
 result <- master$run()
-#master$summary()
+master$summary()
 print(master$summary(), digits=5)
 print(coef(lmOrig), digits=5)
 sessionInfo()
