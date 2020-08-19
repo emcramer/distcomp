@@ -60,6 +60,12 @@ process) has access to the `distcomp` library and the workspace.
 Refer to the vignette in the package for some tips on developing new
 distributed computations. 
 
+## Examples
+
+Please refer to the following gists to see examples of computations.
+
+- [Rank K SVD](https://gist.github.com/emcramer/515a13bdcfcdca02a6d9b8149d5c07ec)
+
 ## References
 
 Balasubramanian Narasimhan and Daniel Rubin and Samuel Gross and
