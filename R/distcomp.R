@@ -372,6 +372,22 @@ availableComputations <- function() {
         makeMaster = function(defn, debug = FALSE) PoissonRegressionMaster$new(defn = defn, debug = debug),
         makeWorker = function(defn, data) PoissonRegressionWorker$new(defn = defn, data = data)
       )
+    , LogisticRegressionModel = list(
+        desc = "Binomial Logistic Regression Model",
+        definitionApp = "defineNewLogisticRegressionModel",
+        setupWorkerApp = "setupLogisticRegressionWorker",
+        setupMasterApp = "setupLogisticRegressionMaster",
+        makeDefinition = function() {
+          data.frame(id = getComputationInfo("id"),
+                     compType = getComputationInfo("compType"),
+                     projectName = getComputationInfo("projectName"),
+                     projectDesc = getComputationInfo("projectDesc"),
+                     formula = getComputationInfo("formula"),
+                     stringsAsFactors=FALSE)
+        },
+        makeMaster = function(defn, debug = FALSE) LogisticRegressionMaster$new(defn = defn, debug = debug),
+        makeWorker = function(defn, data) LogisticRegressionWorker$new(defn = defn, data = data)
+      )
   )
 }
 
